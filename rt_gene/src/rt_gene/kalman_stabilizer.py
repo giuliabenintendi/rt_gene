@@ -30,7 +30,6 @@ Code from https://github.com/yinguobing/head-pose-estimation
 Using Kalman Filter as a point stabilizer to stabilize a 2D point.
 """
 
-
 class Stabilizer(object):
     """Using Kalman filter as a point stabilizer."""
 
@@ -40,85 +39,64 @@ class Stabilizer(object):
                  cov_process=0.0001,
                  cov_measure=0.1):
         """Initialization"""
-        # Currently we only support scalar and point, so check user input first.
-        assert state_num == 4 or state_num == 2, "Only scalar and point supported, Check state_num please."
+        assert state_num == 4 or state_num == 2, "Only scalar and point supported, check state_num please."
 
-        # Store the parameters.
         self.state_num = state_num
         self.measure_num = measure_num
 
-        # The filter itself.
         self.filter = cv2.KalmanFilter(state_num, measure_num, 0)
 
-        # Store the state.
-        self.state = np.zeros((state_num, 1), dtype=float)
+        # Make sure these are float32!
+        self.state = np.zeros((state_num, 1), dtype=np.float32)
+        self.measurement = np.zeros((measure_num, 1), dtype=np.float32)
+        self.prediction = np.zeros((state_num, 1), dtype=np.float32)
 
-        # Store the measurement result.
-        self.measurement = np.array((measure_num, 1), float)
-
-        # Store the prediction.
-        self.prediction = np.zeros((state_num, 1), float)
-
-        # Kalman parameters setup for scalar.
         if self.measure_num == 1:
             self.filter.transitionMatrix = np.array([[1, 1],
-                                                     [0, 1]], float)
-
-            self.filter.measurementMatrix = np.array([[1, 1]], float)
-
+                                                     [0, 1]], dtype=np.float32)
+            self.filter.measurementMatrix = np.array([[1, 1]], dtype=np.float32)
             self.filter.processNoiseCov = np.array([[1, 0],
-                                                    [0, 1]], float) * cov_process
+                                                    [0, 1]], dtype=np.float32) * cov_process
+            self.filter.measurementNoiseCov = np.array([[1]], dtype=np.float32) * cov_measure
 
-            self.filter.measurementNoiseCov = np.array(
-                [[1]], float) * cov_measure
-
-        # Kalman parameters setup for point.
         if self.measure_num == 2:
             self.filter.transitionMatrix = np.array([[1, 0, 1, 0],
                                                      [0, 1, 0, 1],
                                                      [0, 0, 1, 0],
-                                                     [0, 0, 0, 1]], float)
-
+                                                     [0, 0, 0, 1]], dtype=np.float32)
             self.filter.measurementMatrix = np.array([[1, 0, 0, 0],
-                                                      [0, 1, 0, 0]], float)
-
+                                                      [0, 1, 0, 0]], dtype=np.float32)
             self.filter.processNoiseCov = np.array([[1, 0, 0, 0],
                                                     [0, 1, 0, 0],
                                                     [0, 0, 1, 0],
-                                                    [0, 0, 0, 1]], float) * cov_process
-
+                                                    [0, 0, 0, 1]], dtype=np.float32) * cov_process
             self.filter.measurementNoiseCov = np.array([[1, 0],
-                                                        [0, 1]], float) * cov_measure
+                                                        [0, 1]], dtype=np.float32) * cov_measure
 
     def update(self, measurement):
         """Update the filter"""
-        # Make kalman prediction
         self.prediction = self.filter.predict()
 
-        # Get new measurement
+        # Convert to float32 measurement
         if self.measure_num == 1:
-            self.measurement = np.array([[float(measurement[0])]])
+            self.measurement = np.array([[float(measurement[0])]], dtype=np.float32)
         else:
             self.measurement = np.array([[float(measurement[0])],
-                                         [float(measurement[1])]])
+                                         [float(measurement[1])]], dtype=np.float32)
 
-        # Correct according to mesurement
         self.filter.correct(self.measurement)
-
-        # Update state value.
         self.state = self.filter.statePost
 
     def set_q_r(self, cov_process=0.1, cov_measure=0.001):
-        """Set new value for processNoiseCov and measurementNoiseCov."""
+        """Set process and measurement noise covariances"""
         if self.measure_num == 1:
             self.filter.processNoiseCov = np.array([[1, 0],
-                                                    [0, 1]], float) * cov_process
-            self.filter.measurementNoiseCov = np.array(
-                [[1]], float) * cov_measure
+                                                    [0, 1]], dtype=np.float32) * cov_process
+            self.filter.measurementNoiseCov = np.array([[1]], dtype=np.float32) * cov_measure
         else:
             self.filter.processNoiseCov = np.array([[1, 0, 0, 0],
                                                     [0, 1, 0, 0],
                                                     [0, 0, 1, 0],
-                                                    [0, 0, 0, 1]], float) * cov_process
+                                                    [0, 0, 0, 1]], dtype=np.float32) * cov_process
             self.filter.measurementNoiseCov = np.array([[1, 0],
-                                                        [0, 1]], float) * cov_measure
+                                                        [0, 1]], dtype=np.float32) * cov_measure
