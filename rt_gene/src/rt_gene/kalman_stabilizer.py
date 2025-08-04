@@ -36,8 +36,8 @@ class Stabilizer(object):
     def __init__(self,
                  state_num=4,
                  measure_num=2,
-                 cov_process=0.0001,
-                 cov_measure=0.1):
+                 cov_process=0.01,
+                 cov_measure=0.05):
         """Initialization"""
         assert state_num == 4 or state_num == 2, "Only scalar and point supported, check state_num please."
 
